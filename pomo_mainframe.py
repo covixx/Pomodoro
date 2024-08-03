@@ -1,14 +1,16 @@
 from tkinter import *
 from tkinter import ttk
-
+import PIL
+import PIL.Image
+import PIL.ImageTk
 #BUG: Stop button during break is useless.  
-#TODO: Add long breaks without resetting pomo counts(newvar). Add logo. Make progress bar circle. Display countdown in timer. 
+#TODO: Make progress bar circle. Display countdown in timer. 
 # Initializing some values
 root = Tk()
 pomo_count = IntVar()
 counter = 0
-remaining_time = 5
-break_time = 3
+remaining_time = 1
+break_time = 1
 countdown_display = StringVar()
 timer_condition = BooleanVar()
 total_time_focused = StringVar()
@@ -51,7 +53,7 @@ def update_countdown():
 # Function to initialize the countdown
 def init_countdown():
     global remaining_time
-    remaining_time = 5
+    remaining_time = 1
     timer_condition.set(True)
     update_countdown()
 
@@ -86,8 +88,8 @@ def start_break(*args):
         root.after(1000, start_break)
     else:
         countdown_display.set("Time to focus.")
-        break_time = 3 
-        if counter == 3:
+        break_time = 1 
+        if (counter+1)%4 == 0:
             break_time *= 5
         break_button.grid_remove()
         start_button.grid()
@@ -112,12 +114,22 @@ stop_button = ttk.Button(mainframe, text="Stop", command=stop_countdown)
 stop_button.grid(column=1, row=5, sticky=(W, E))
 stop_button.config(state=DISABLED)
 
+
+img = PIL.Image.open("C:/Users/Vaibhav/Desktop/python/pomo_project/Pomodoro/logo.png")
+img = img.reduce(50)
+image_insert = PIL.ImageTk.PhotoImage(img)
+image_label = Label(mainframe, image=image_insert)
+image_label.grid(row=2, column=3, sticky=NE)
+
 ttk.Label(mainframe, text="Pomos today:").grid(column=1, row=2, sticky=W)
 ttk.Label(mainframe, textvariable=pomo_count).grid(column=2, row=2, sticky=W)
+
 ttk.Label(mainframe, text="Time spent focusing:").grid(column=1, row=4, sticky=W)
 ttk.Label(mainframe, textvariable=total_time_focused).grid(column=2, row=4, sticky=W)
+
 ttk.Label(mainframe, text="Time left:").grid(column=1, row=3, sticky=W)
 ttk.Label(mainframe, textvariable=countdown_display, width=12).grid(column=2, row=3, sticky=W)
+
 progress = ttk.Progressbar(mainframe, orient=HORIZONTAL, length=200, mode='determinate')
 progress.grid(column=1, row=6, columnspan=3, sticky=(W,E))
 progress['maximum'] = 100
