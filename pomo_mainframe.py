@@ -1,10 +1,10 @@
 from tkinter import *
 from tkinter import ttk
-import PIL
-import PIL.Image
-import PIL.ImageTk
-#BUG: Stop button during break is useless.  
-#TODO: Make progress bar circle. Display countdown in timer. 
+import PIL.Image, PIL.ImageTk
+from win10toast import ToastNotifier
+from threading import Thread
+#BUG: Stop button during break is useless. 
+#TODO:  Make timer input, take input for time and make rest ceil(inp//5). Make progress bar circle. Display countdown in timer. 
 # Initializing some values
 root = Tk()
 pomo_count = IntVar()
@@ -17,6 +17,7 @@ total_time_focused = StringVar()
 time_focused = 0
 focus_goal = 30
 on_break = BooleanVar(value=False)
+n = ToastNotifier()
 # Function to display the total time spent focusing
 def time_spent_focusing(*args): 
     hrs_focused = time_focused // 3600
@@ -26,6 +27,8 @@ def time_spent_focusing(*args):
     total_time_focused.set(f'{time_display_focused}')
     progress['value'] = time_focused/focus_goal * 100
 # Function to update the countdown timer
+def show_notification(message):
+    n.show_toast(message, duration=5)
 def update_countdown():
     global remaining_time, time_focused, counter
     if timer_condition.get():
@@ -38,6 +41,7 @@ def update_countdown():
             display_time(remaining_time)
             root.after(1000, update_countdown)
         else:
+            Thread(target=show_notification, args=("Well done.",)).start()
             countdown_display.set("Take a break.")
             counter += 1
             pomo_count.set(counter)
@@ -87,6 +91,7 @@ def start_break(*args):
         break_button.config(state=DISABLED)
         root.after(1000, start_break)
     else:
+        Thread(target=show_notification, args=("Break's over",)).start()
         countdown_display.set("Time to focus.")
         break_time = 1 
         if (counter+1)%4 == 0:
