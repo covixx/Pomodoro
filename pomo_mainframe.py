@@ -3,21 +3,28 @@ from tkinter import ttk
 import PIL.Image, PIL.ImageTk
 from win10toast import ToastNotifier
 from threading import Thread
+import math
 #BUG: Stop button during break is useless. 
-#TODO:  Make timer input, take input for time and make rest ceil(inp//5). Make progress bar circle. Display countdown in timer. 
+#TODO:  Align input page style with main page. Make progress bar circle. Display countdown in timer. 
 # Initializing some values
+# Initialize global variables
+focus_time = 1
+rest_time = 1
+focus_goal = 30
+
+# Initialize some values
 root = Tk()
 pomo_count = IntVar()
 counter = 0
-remaining_time = 1
-break_time = 1
+remaining_time = focus_time
+break_time = rest_time
 countdown_display = StringVar()
 timer_condition = BooleanVar()
 total_time_focused = StringVar()
 time_focused = 0
-focus_goal = 30
 on_break = BooleanVar(value=False)
 n = ToastNotifier()
+
 # Function to display the total time spent focusing
 def time_spent_focusing(*args): 
     hrs_focused = time_focused // 3600
@@ -25,10 +32,12 @@ def time_spent_focusing(*args):
     secs_focused = time_focused % 60
     time_display_focused = f"{hrs_focused:02}:{mins_focused:02}:{secs_focused:02}"
     total_time_focused.set(f'{time_display_focused}')
-    progress['value'] = time_focused/focus_goal * 100
+    progress['value'] = time_focused / (focus_goal * 60) * 100
+
 # Function to update the countdown timer
 def show_notification(message):
     n.show_toast(message, duration=5)
+
 def update_countdown():
     global remaining_time, time_focused, counter
     if timer_condition.get():
@@ -57,7 +66,7 @@ def update_countdown():
 # Function to initialize the countdown
 def init_countdown():
     global remaining_time
-    remaining_time = 1
+    remaining_time = focus_time
     timer_condition.set(True)
     update_countdown()
 
@@ -93,53 +102,93 @@ def start_break(*args):
     else:
         Thread(target=show_notification, args=("Break's over",)).start()
         countdown_display.set("Time to focus.")
-        break_time = 1 
-        if (counter+1)%4 == 0:
+        break_time = rest_time
+        if (counter + 1) % 4 == 0:
             break_time *= 5
         break_button.grid_remove()
         start_button.grid()
         stop_button.config(state=DISABLED)
         start_button.config(state=ACTIVE)
 
-# Initializing frame of the app
-root.title("Pomodoro App")
-mainframe = ttk.Frame(root, padding="3 3 12 12")
-mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
-root.columnconfigure(0, weight=1)
-root.rowconfigure(0, weight=1)
+# Input Page
+def show_main_page():
+    input_frame.grid_forget()
+    main_frame.grid()
 
-break_button = ttk.Button(mainframe, text="Start Break", command=start_break)
+def submit_input():
+    global focus_time, rest_time, focus_goal
+    try:
+        focus_time = int(focus_time_entry.get()) * 60
+        rest_time = int(math.floor(focus_time//5))
+        focus_goal = int(focus_goal_entry.get())
+        global remaining_time, break_time
+        remaining_time = focus_time
+        break_time = rest_time
+        show_main_page()
+    except ValueError:
+        error_label.config(text="Please enter valid numbers.")
+
+#Input Page
+input_frame = ttk.Frame(root)
+input_frame.grid(column=0, row=0, sticky=(N, W, E, S))
+
+ttk.Label(input_frame, text="Focus Time (minutes):").grid(column=1, row=1, sticky=W)
+focus_time_entry = ttk.Entry(input_frame, justify=CENTER)
+focus_time_entry.grid(column=2, row=1, sticky=W)
+
+"""ttk.Label(input_frame, text="Rest Time (minutes):").grid(column=1, row=2, sticky=W)
+rest_time_entry = ttk.Entry(input_frame, justify=CENTER)
+rest_time_entry.grid(column=2, row=2, sticky=W)"""
+
+ttk.Label(input_frame, text="Focus Goal (minutes):").grid(column=1, row=3, sticky=W)
+focus_goal_entry = ttk.Entry(input_frame, justify=CENTER)
+focus_goal_entry.grid(column=2, row=3, sticky=W)
+
+submit_button = ttk.Button(input_frame, text="Submit", command=submit_input)
+submit_button.grid(column=2, row=4, sticky=(W, E))
+
+error_label = ttk.Label(input_frame, text="", foreground="red")
+error_label.grid(column=1, row=5, columnspan=2, sticky=W)
+
+# Main Page
+main_frame = ttk.Frame(root, padding="3 3 12 12")
+main_frame.grid(column=0, row=0, sticky=(N, W, E, S))
+main_frame.grid_forget()
+
+break_button = ttk.Button(main_frame, text="Start Break", command=start_break)
 break_button.grid(column=3, row=5, sticky=(W, E))
 break_button.grid_remove()
 
-start_button = ttk.Button(mainframe, text="Start Timer", command=init_countdown)
+start_button = ttk.Button(main_frame, text="Start Timer", command=init_countdown)
 start_button.grid(column=3, row=5, sticky=(W, E))
 
-stop_button = ttk.Button(mainframe, text="Stop", command=stop_countdown)
+stop_button = ttk.Button(main_frame, text="Stop", command=stop_countdown)
 stop_button.grid(column=1, row=5, sticky=(W, E))
 stop_button.config(state=DISABLED)
-
 
 img = PIL.Image.open("C:/Users/Vaibhav/Desktop/python/pomo_project/Pomodoro/logo.png")
 img = img.reduce(50)
 image_insert = PIL.ImageTk.PhotoImage(img)
-image_label = Label(mainframe, image=image_insert)
+image_label = Label(main_frame, image=image_insert)
 image_label.grid(row=2, column=3, sticky=NE)
 
-ttk.Label(mainframe, text="Pomos today:").grid(column=1, row=2, sticky=W)
-ttk.Label(mainframe, textvariable=pomo_count).grid(column=2, row=2, sticky=W)
+ttk.Label(main_frame, text="Pomos today:").grid(column=1, row=2, sticky=W)
+ttk.Label(main_frame, textvariable=pomo_count).grid(column=2, row=2, sticky=W)
 
-ttk.Label(mainframe, text="Time spent focusing:").grid(column=1, row=4, sticky=W)
-ttk.Label(mainframe, textvariable=total_time_focused).grid(column=2, row=4, sticky=W)
+ttk.Label(main_frame, text="Time spent focusing:").grid(column=1, row=4, sticky=W)
+ttk.Label(main_frame, textvariable=total_time_focused).grid(column=2, row=4, sticky=W)
 
-ttk.Label(mainframe, text="Time left:").grid(column=1, row=3, sticky=W)
-ttk.Label(mainframe, textvariable=countdown_display, width=12).grid(column=2, row=3, sticky=W)
+ttk.Label(main_frame, text="Time left:").grid(column=1, row=3, sticky=W)
+ttk.Label(main_frame, textvariable=countdown_display, width=12).grid(column=2, row=3, sticky=W)
 
-progress = ttk.Progressbar(mainframe, orient=HORIZONTAL, length=200, mode='determinate')
+progress = ttk.Progressbar(main_frame, orient=HORIZONTAL, length=200, mode='determinate')
 progress.grid(column=1, row=6, columnspan=3, sticky=(W,E))
 progress['maximum'] = 100
 progress['value'] = 0
-for child in mainframe.winfo_children():
+
+for child in main_frame.winfo_children():
     child.grid_configure(padx=20, pady=5)
+
 root.bind("<Return>", init_countdown)
+
 root.mainloop()
